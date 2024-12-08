@@ -1,10 +1,8 @@
 from typing import Optional
-
-
-p_cache = dict()
-
 import os
 from typing import Optional
+
+p_cache: dict[int,list[int]] = dict()
 
 
 class TextGrid:
@@ -58,9 +56,8 @@ class TextGrid:
         return s
 
 
-def permute(choose, base):
+def permute(choose: int, base: int) -> list[list[int]]:
     if choose in p_cache:
-        print("HIT")
         return p_cache[choose]
     
     result = []
