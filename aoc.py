@@ -18,6 +18,17 @@ class TextGrid:
 
         self.width = len(self.lines[0])
         self.height = len(self.lines)
+
+    def find_all(self, char: str) -> list[tuple[int,int]]:
+        results = []
+
+        for x in range(self.width):
+            for y in range(self.height):
+                if self[x,y] == char:
+                    results.append((x,y))
+
+        return results
+
     
     def find(self, char: str) -> Optional[tuple[int, int]]:
         for x in range(self.width):
