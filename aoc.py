@@ -1,9 +1,14 @@
-from collections import deque
+from collections import defaultdict, deque
 from enum import Enum
+import heapq
 from typing import Callable, Iterable, Iterator, Optional
 import os
 
 p_cache: dict[int, list[int]] = dict()
+
+Point = tuple[int, int]
+PathWeightFunc = Callable[["TextGrid", Point, Point], Optional[int]]
+NeighbourFunc = Callable[["TextGrid", Point], list[Point]]
 
 
 class Direction(Enum):
@@ -43,12 +48,12 @@ class Direction(Enum):
         all.rotate(-all.index(start) - 1)
         return reversed(all)
 
-    def apply(self, point: tuple[int, int]) -> tuple[int, int]:
+    def apply(self, point: Point) -> Point:
         return (point[0] + self.value[0], point[1] + self.value[1])
 
 
 class TextGrid:
-    lines: tuple[str]
+    lines: list[str]
     width: int
     height: int
 
@@ -61,7 +66,7 @@ class TextGrid:
         self.width = len(self.lines[0])
         self.height = len(self.lines)
 
-    def find_all(self, char: str) -> list[tuple[int, int]]:
+    def find_all(self, char: str) -> list[Point]:
         results = []
 
         for x in range(self.width):
@@ -71,63 +76,99 @@ class TextGrid:
 
         return results
 
+    def adjacent_neighbours(self, p: Point):
+        return [d.apply(p) for d in Direction.all() if self[p] != None]
+
     def _search(
         self,
-        start_x: int,
-        start_y: int,
-        is_connected: Callable[["TextGrid", tuple[int, int], tuple[int, int]], bool],
-        popper: Callable[[deque[tuple[int, int]]], tuple[int, int]],
-        get_neighbours: Callable[["TextGrid", tuple[int, int]], list[tuple[int, int]]],
+        start: Point,
+        get_weight: PathWeightFunc,
+        popper: Callable[[deque[Point]], Point],
+        get_neighbours: NeighbourFunc = adjacent_neighbours,
         acyclic: bool = False,
-    ) -> Iterator[tuple[int, int, str]]:
+    ) -> Iterator[tuple[str, Point]]:
         visited = set()
-        s = deque([(start_x, start_y)])
+        s = deque([start])
 
         while s:
             cur = popper(s)
             visited.add(cur)
-            yield cur[0], cur[1], self[cur]
+            yield self[cur], (cur[0], cur[1])
             neighbours = get_neighbours(self, cur)
             for n in neighbours:
                 if (
                     self[n] != None
                     and (n not in visited or acyclic)
-                    and is_connected(self, cur, n)
+                    and get_weight(self, cur, n) is not None
                 ):
                     s.append(n)
 
-    def adjacent_neighbours(self, p: tuple[int, int]):
-        return [d.apply(p) for d in Direction.all() if self[p] != None]
-
     def dfs(
         self,
-        start_x: int,
-        start_y: int,
-        is_connected: Callable[["TextGrid", tuple[int, int], tuple[int, int]], bool],
+        start: Point,
+        get_weight: PathWeightFunc,
         acyclic: bool = False,
-        get_neighbours: Callable[
-            ["TextGrid", tuple[int, int]], list[tuple[int, int]]
-        ] = adjacent_neighbours,
-    ) -> Iterator[tuple[int, int, str]]:
-        return self._search(
-            start_x, start_y, is_connected, deque.pop, get_neighbours, acyclic
-        )
+        get_neighbours: NeighbourFunc = adjacent_neighbours,
+    ) -> Iterator[tuple[str, Point]]:
+        return self._search(start, get_weight, deque.pop, get_neighbours, acyclic)
 
     def bfs(
         self,
-        start_x: int,
-        start_y: int,
-        is_connected: Callable[["TextGrid", tuple[int, int], tuple[int, int]], bool],
+        start: Point,
+        get_weight: PathWeightFunc,
         acyclic: bool = False,
-        get_neighbours: Callable[
-            ["TextGrid", tuple[int, int]], list[tuple[int, int]]
-        ] = adjacent_neighbours,
-    ) -> Iterator[tuple[int, int, str]]:
-        return self._search(
-            start_x, start_y, is_connected, deque.popleft, get_neighbours, acyclic
-        )
+        get_neighbours: NeighbourFunc = adjacent_neighbours,
+    ) -> Iterator[tuple[str, Point]]:
+        return self._search(start, get_weight, deque.popleft, get_neighbours, acyclic)
 
-    def find(self, char: str) -> Optional[tuple[int, int]]:
+    def shortest_path(
+        self,
+        p1: Point,
+        p2: Point,
+        get_weight: PathWeightFunc,
+        get_neighbours: NeighbourFunc = adjacent_neighbours,
+        heuristic: PathWeightFunc = None,
+    ) -> Optional[tuple[int, deque[Point]]]:
+        distance = defaultdict(lambda: float("inf"))
+        distance[p1] = 0
+        parents = dict()
+
+        q = [(0, p1)]
+        while q:
+            cur_weight, cur = heapq.heappop(q)
+            if cur == p2:
+                break
+
+            if cur_weight > distance[cur]:
+                continue
+
+            neighbours = get_neighbours(self, cur)
+            for n in neighbours:
+                weight = get_weight(self, cur, n)
+                if weight is None:
+                    continue
+
+                weight += distance[cur]
+                if heuristic:
+                    weight += heuristic(self, cur, p2)
+
+                if weight < distance[n]:
+                    distance[n] = weight
+                    parents[n] = cur
+                    heapq.heappush(q, (weight, n))
+
+        if p2 not in parents:
+            return None
+
+        path = deque()
+        path.appendleft(p2)
+        back = p2
+        while (back := parents[back]) != p1:
+            path.appendleft(back)
+
+        return distance[p2], path
+
+    def find(self, char: str) -> Optional[Point]:
         for x in range(self.width):
             for y in range(self.height):
                 if self[x, y] == char:
@@ -137,16 +178,17 @@ class TextGrid:
     def from_file(cls, path: str, strip: bool = True) -> "TextGrid":
         with open(path) as f:
             lines = f.readlines()
-            return cls(lines)
 
-    def __getitem__(self, index: tuple[int, int]) -> Optional[str]:
+            return cls(lines, strip)
+
+    def __getitem__(self, index: Point) -> Optional[str]:
         try:
             if index[0] >= 0 and index[1] >= 0:
                 return self.lines[index[1]][index[0]]
         except:
             pass
 
-    def __setitem__(self, index: tuple[int, int], val: str) -> Optional[str]:
+    def __setitem__(self, index: Point, val: str) -> Optional[str]:
         ret = None
         try:
             if (

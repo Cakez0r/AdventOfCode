@@ -3,9 +3,14 @@ from aoc import TextGrid
 grid = TextGrid.from_file("input.txt")
 
 
-def connected(g, x, y):
+def get_weight(g, p1, p2):
     try:
-        return int(g[y]) - int(g[x]) == 1 and abs(y[0] - x[0]) + abs(y[1] - x[1]) == 1
+        return (
+            1
+            if int(g[p2]) - int(g[p1]) == 1
+            and abs(p2[0] - p1[0]) + abs(p2[1] - p1[1]) == 1
+            else None
+        )
     except:
         return False
 
@@ -14,7 +19,7 @@ roots = grid.find_all("0")
 count = 0
 part2 = False
 for r in roots:
-    for x, y, v in grid.dfs(*r, connected, acyclic=part2):
+    for v, (x, y) in grid.dfs(r, get_weight, acyclic=part2):
         if v == "9":
             count += 1
 
