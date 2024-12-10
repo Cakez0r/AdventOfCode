@@ -1,8 +1,10 @@
 from collections import defaultdict, deque
 from enum import Enum
 import heapq
-from typing import Callable, Iterable, Iterator, Optional
+from typing import Callable, Iterable, Iterator, Optional, TypeVar
 import os
+
+T = TypeVar("T")
 
 p_cache: dict[int, list[int]] = dict()
 
@@ -209,6 +211,13 @@ class TextGrid:
             s += l + os.linesep
 
         return s
+
+
+def try_or_default(fn: Callable[[], T], default: T) -> T:
+    try:
+        return fn()
+    except:
+        return default
 
 
 def permute(choose: int, base: int) -> list[list[int]]:
