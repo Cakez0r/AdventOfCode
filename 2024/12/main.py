@@ -1,30 +1,17 @@
+from functools import partial
 from aoc import Direction, TextGrid, Point
 
 
-# 0 = 80
-# 2 = 1206
-# 3 = 436
-# 4 = 236
-# 5 = 368
-# 6 = 368
 grid = TextGrid.from_file("input.txt")
-
 visited = set()
+total_cost = 0
+total_cost2 = 0
 
 
 def same_region(g, p1, p2):
     return 1 if g[p1] == g[p2] else None
 
 
-dirs = [Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST]
-
-
-def get_neighbours(grid: TextGrid, p: Point):
-    return [d.apply(p) for d in dirs]
-
-
-total_cost = 0
-total_cost2 = 0
 for y in range(grid.height):
     for x in range(grid.width):
         if (x, y) in visited:
@@ -35,11 +22,15 @@ for y in range(grid.height):
         perimiter = set()
         region = set()
         for rv, (rx, ry) in grid.dfs(
-            (x, y), same_region, get_neighbours=get_neighbours
+            (x, y),
+            same_region,
+            get_neighbours=partial(
+                TextGrid.get_neighbours, directions=Direction.cardinal()
+            ),
         ):
             visited.add((rx, ry))
             region.add((rx, ry))
-            neighbours = grid.adjacent_neighbours((rx, ry), True)
+            neighbours = grid.get_neighbours((rx, ry), include_none=True)
             for n in neighbours:
                 perimiter.add(n)
                 if grid[n] != rv:
@@ -50,7 +41,7 @@ for y in range(grid.height):
         perimiter.difference_update(region)
         corners = 0
         for v in perimiter:
-            for sd in dirs:
+            for sd in Direction.cardinal():
                 cd = Direction.cw(sd)
                 p1 = cd[0].apply(v)
                 p2 = cd[1].apply(v)
