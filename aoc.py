@@ -39,6 +39,28 @@ class Direction(Enum):
         )
 
     @classmethod
+    def cardinal(cls) -> deque["Direction"]:
+        return deque(
+            [
+                cls.NORTH,
+                cls.EAST,
+                cls.SOUTH,
+                cls.WEST,
+            ]
+        )
+
+    @classmethod
+    def intercardinal(cls) -> deque["Direction"]:
+        return deque(
+            [
+                cls.NORTH_EAST,
+                cls.SOUTH_EAST,
+                cls.SOUTH_WEST,
+                cls.NORTH_WEST,
+            ]
+        )
+
+    @classmethod
     def cw(cls, start: "Direction") -> Iterable["Direction"]:
         all = cls.all()
         all.rotate(-all.index(start))
@@ -78,11 +100,14 @@ class TextGrid:
 
         return results
 
-    def adjacent_neighbours(self, p: Point, include_none: bool = False):
+    def get_neighbours(
+        self,
+        p: Point,
+        directions: Iterable[Direction] = Direction.all(),
+        include_none: bool = False,
+    ):
         return [
-            d.apply(p)
-            for d in Direction.all()
-            if include_none or self[d.apply(p)] != None
+            d.apply(p) for d in directions if include_none or self[d.apply(p)] != None
         ]
 
     def _search(
@@ -90,7 +115,7 @@ class TextGrid:
         start: Point,
         get_weight: PathWeightFunc,
         popper: Callable[[deque[Point]], Point],
-        get_neighbours: NeighbourFunc = adjacent_neighbours,
+        get_neighbours: NeighbourFunc = get_neighbours,
         acyclic: bool = False,
     ) -> Iterator[tuple[str, Point]]:
         visited = set()
@@ -117,7 +142,7 @@ class TextGrid:
         start: Point,
         get_weight: PathWeightFunc,
         acyclic: bool = False,
-        get_neighbours: NeighbourFunc = adjacent_neighbours,
+        get_neighbours: NeighbourFunc = get_neighbours,
     ) -> Iterator[tuple[str, Point]]:
         return self._search(start, get_weight, deque.pop, get_neighbours, acyclic)
 
@@ -126,7 +151,7 @@ class TextGrid:
         start: Point,
         get_weight: PathWeightFunc,
         acyclic: bool = False,
-        get_neighbours: NeighbourFunc = adjacent_neighbours,
+        get_neighbours: NeighbourFunc = get_neighbours,
     ) -> Iterator[tuple[str, Point]]:
         return self._search(start, get_weight, deque.popleft, get_neighbours, acyclic)
 
@@ -135,7 +160,7 @@ class TextGrid:
         p1: Point,
         p2: Point,
         get_weight: PathWeightFunc,
-        get_neighbours: NeighbourFunc = adjacent_neighbours,
+        get_neighbours: NeighbourFunc = get_neighbours,
         heuristic: PathWeightFunc = None,
     ) -> Optional[tuple[int, deque[Point]]]:
         distance = defaultdict(lambda: float("inf"))
