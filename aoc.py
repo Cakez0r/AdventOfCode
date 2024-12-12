@@ -78,8 +78,12 @@ class TextGrid:
 
         return results
 
-    def adjacent_neighbours(self, p: Point):
-        return [d.apply(p) for d in Direction.all() if self[p] != None]
+    def adjacent_neighbours(self, p: Point, include_none: bool = False):
+        return [
+            d.apply(p)
+            for d in Direction.all()
+            if include_none or self[d.apply(p)] != None
+        ]
 
     def _search(
         self,
@@ -94,6 +98,9 @@ class TextGrid:
 
         while s:
             cur = popper(s)
+            if cur in visited and not acyclic:
+                continue
+
             visited.add(cur)
             yield self[cur], (cur[0], cur[1])
             neighbours = get_neighbours(self, cur)
