@@ -61,16 +61,17 @@ class Direction(Enum):
         )
 
     @classmethod
-    def cw(cls, start: "Direction") -> Iterable["Direction"]:
+    def cw(cls, start: "Direction") -> deque["Direction"]:
         all = cls.all()
         all.rotate(-all.index(start))
         return all
 
     @classmethod
-    def ccw(cls, start: "Direction") -> Iterable["Direction"]:
+    def ccw(cls, start: "Direction") -> deque["Direction"]:
         all = cls.all()
         all.rotate(-all.index(start) - 1)
-        return reversed(all)
+        all.reverse()
+        return all
 
     def apply(self, point: Point) -> Point:
         return (point[0] + self.value[0], point[1] + self.value[1])
