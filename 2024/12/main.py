@@ -41,17 +41,19 @@ for y in range(grid.height):
         perimiter.difference_update(region)
         corners = 0
         for v in perimiter:
-            for sd in Direction.cardinal():
-                cd = Direction.cw(sd)
-                p1 = cd[0].apply(v)
-                p2 = cd[1].apply(v)
-                p3 = cd[2].apply(v)
+            dirs = Direction.all()
+            for _ in range(4):
+                p1 = dirs[0].apply(v)
+                p2 = dirs[1].apply(v)
+                p3 = dirs[2].apply(v)
                 if p1 in perimiter and p2 in region and p3 in perimiter:
                     corners += 1
                 elif p1 in region and p2 in perimiter and p3 in region:
                     corners += 1
                 elif p1 in region and p2 in region and p3 in region:
                     corners += 1
+
+                dirs.rotate(2)
 
         total_cost += area * len(sides)
         total_cost2 += area * corners
