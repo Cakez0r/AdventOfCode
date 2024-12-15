@@ -1,6 +1,10 @@
 from collections import defaultdict, deque
 from enum import Enum
 import heapq
+from itertools import starmap
+from math import sqrt
+import numbers
+import operator
 from typing import Callable, Iterable, Iterator, Optional, TypeVar
 import os
 
@@ -11,6 +15,50 @@ p_cache: dict[int, list[int]] = dict()
 Point = tuple[int, int]
 PathWeightFunc = Callable[["TextGrid", Point, Point], Optional[int]]
 NeighbourFunc = Callable[["TextGrid", Point], list[Point]]
+
+
+class Vector(tuple):
+    @property
+    def x(self):
+        return self[0]
+
+    @property
+    def y(self):
+        return self[1]
+
+    @property
+    def z(self):
+        return self[2]
+
+    @property
+    def w(self):
+        return self[3]
+
+    def _apply_operation(self, other: Iterable, op: Callable) -> "Vector":
+        if isinstance(other, numbers.Number):
+            other = [other] * len(self)
+        elif isinstance(other, Direction):
+            other = other.value
+
+        if isinstance(other, Iterable):
+            return Vector(starmap(op, zip(self, other)))
+
+        raise Exception("Operand must be iterable")
+
+    def magnitude(self):
+        return sqrt(sum(n**2 for n in self))
+
+    def __add__(self, other):
+        return self._apply_operation(other, operator.add)
+
+    def __sub__(self, other):
+        return self._apply_operation(other, operator.sub)
+
+    def __truediv__(self, other):
+        return self._apply_operation(other, operator.truediv)
+
+    def __mul__(self, other):
+        return self._apply_operation(other, operator.mul)
 
 
 class Direction(Enum):
