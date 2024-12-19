@@ -105,4 +105,4 @@ path = shortest_path(grid, start, end)
 all_tiles = find_all_tiles_on_path(grid, start, end, path[0])
 
 print(path[0])  # Part 1
-print(len(all_tiles))  # 538 - Part 2
+print(len(all_tiles))  # Part 2
