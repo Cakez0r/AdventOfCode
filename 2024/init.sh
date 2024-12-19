@@ -1,10 +1,14 @@
 #!/bin/bash
 
-day=$(date +%-d)
+day=${1:-$(date +%-d)}
 
-mkdir $day
-cd $day
+mkdir -p "$day"
+cd "$day" || exit
+
 touch sample.txt
+
 touch main.py
+
 ln -s ../../aoc.py aoc.py
+
 code .
