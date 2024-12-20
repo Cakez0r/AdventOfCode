@@ -28,6 +28,38 @@ def all_connected(g: TextGrid, p1: Point, p2: Point):
     return 1
 
 
+def find_cheats3(g: TextGrid):
+    count = 0
+    start = g.find("S")
+    end = g.find("E")
+
+    baseline = g.shortest_path(
+        start,
+        end,
+        get_weight,
+        partial(TextGrid.get_neighbours, directions=Direction.cardinal()),
+    )
+    baseline[1].appendleft(start)
+    path = list(baseline[1])
+
+    i = 0
+    for p1 in baseline[1]:
+        i += 1
+        print(f"{i} / {len(baseline[1])}")
+
+        for p2 in path[i:]:
+            md = manhattan_distance(p1, p2)
+            if md <= CHEAT_LENGTH:
+                regular = g.shortest_path(p1, p2, get_weight, get_cardinal_neighbours)
+
+                if regular:
+                    saving = regular[0] - md
+                    if saving >= 100:
+                        count += 1
+
+    return count
+
+
 def get_cheatable_neighbours(g: TextGrid, p1: Point, known_cheats: set[Point, Point]):
     neighbours = []
     for x in range(-CHEAT_LENGTH, CHEAT_LENGTH + 1):
@@ -169,5 +201,9 @@ def find_cheats2(g: TextGrid) -> Counter:
 
 # print(sum(c[1] for c in part1.items() if c[0] >= 100))
 
-part2 = find_cheats2(grid)
+# part2 = find_cheats2(grid)
+
+# After getting the answer with find_cheats2, I figured out a much faster way to do it with find_cheats3
+# Runs in about 5 minutes instead of 1 hour
+part2 = find_cheats3(grid)
 print(part2)
